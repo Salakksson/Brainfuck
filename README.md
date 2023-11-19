@@ -1,8 +1,8 @@
 # Brainfuck
-A basic compiler for brainfuck.
+A basic compiler for brainfuck.\n
 Currently only works for x86 linux as it outputs ELF file
 # Usage
-'.' outputs value to stdout
+'.' outputs value to stdout\n
 ',' takes one byte of input from stdin
 pogram returns the value of the pointer
 # Testing & Backend
