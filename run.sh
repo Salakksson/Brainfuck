@@ -3,5 +3,5 @@ make
 
 
 
-build/brainfuck main main
-chmod +x main
+build/brainfuck main app
+chmod +x app

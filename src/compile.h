@@ -45,26 +45,13 @@ typedef struct {
     uint32_t p_align;
 } Program_Header;
 
-typedef struct {
-    uint32_t sh_name;
-    uint32_t sh_type;
-    uint32_t sh_flags;
-    uint32_t sh_addr;
-    uint32_t sh_offset;
-    uint32_t sh_size;
-    uint32_t sh_link;
-    uint32_t sh_info;
-    uint32_t sh_addralign;
-    uint32_t sh_entsize;
-} Section_Header;
-
 int machine_code_length(uint16_t codeLength, char* code);
 
 int parse(char* code, uint16_t** rp_startBrackets);
 
-unsigned char* compile(char* code, short int length);
+unsigned char* compile_ELF(char* code, short int length, int* rp_endlength);
 
-int write(unsigned char* machineCode, char* name, int machineCodeLength);
+int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int endlength);
 
 
 

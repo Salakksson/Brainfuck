@@ -39,12 +39,15 @@ int main(int argc,char **argv)
 	fread(file, sizeof(char), codeLength, fp);
 	fclose(fp);
 
+	int buffer;
+
 	printf("Brainfuck: Compiling file '%s%s'\n", argv[1], extension);
-	unsigned char* machineCode = compile(file, machine_code_length(codeLength, file));
+	unsigned char* machineCode = compile_ELF(file, machine_code_length(codeLength, file), &buffer);
 
 	printf("Brainfuck: Writing to '%s' as ELF\n", argv[2]);
-	if(write(machineCode, argv[2], machine_code_length(codeLength, file)))
+	if(ELF_Write(machineCode, argv[2], machine_code_length(codeLength, file), buffer))
 	{
+		printf("failiure\n");
 		return -3;
 	}
 	printf("Brainfuck: Compilation successful!\n");
