@@ -1,4 +1,7 @@
 make clean
 make
 
-build/brainfuck main
+
+
+build/brainfuck main main
+chmod +x main

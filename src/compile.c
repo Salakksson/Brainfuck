@@ -50,7 +50,7 @@ int parse(char* code, uint16_t** rp_startBrackets)
 	int ends = 0;
 	int chars = 1;
 	int lines = 1;
-	while (ccode)
+	while (*ccode)
 	{
 		switch (*ccode)
 		{
@@ -79,6 +79,7 @@ int parse(char* code, uint16_t** rp_startBrackets)
 
 		ccode++;
 	}
+
 	if (starts != ends)
 	{
 		(starts > ends)
@@ -86,13 +87,12 @@ int parse(char* code, uint16_t** rp_startBrackets)
 		: 	printf("ERROR: more ']' than '[' found in code\n");
 		return -1;
 	}
-
 	*rp_startBrackets = malloc(sizeof(uint16_t) * starts);
 	uint16_t* startBrackets = *rp_startBrackets;
 
 	int arrptr = 0;
 	ccode = code;
-	while (ccode)
+	while (*ccode)
 	{
 		if (*ccode == '[')
 		{
@@ -231,31 +231,74 @@ int write(unsigned char* machineCode, char* name, int machineCodeLength)
 	ELF_Header elfHeader =
 	{
         {0x7F, 'E', 'L', 'F', 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // e_ident
-        2,              		// e_type (executable)
-        3,              		// e_machine (x86)
-        1,              		// e_version
-        0x400080,      			// e_entry (entry point address)
-        sizeof(ELF_Header),  	// e_phoff
-        0,              		// e_shoff
-        0,              		// e_flags
-        sizeof(ELF_Header),  	// e_ehsize
-        sizeof(ELF_Header),  	// e_phentsize
-        1,              		// e_phnum (number of program headers)
-        0,              		// e_shentsize
-        0,              		// e_shnum
-        0               		// e_shstrndx
+        2,              									// e_type (executable)
+        3,              									// e_machine (x86)
+        1,              									// e_version
+        0x400080,      										// e_entry (entry point address)
+        sizeof(ELF_Header),  								// e_phoff (program header)
+        sizeof(ELF_Header) + sizeof(Program_Header),        // e_shoff (section header)
+        0,              									// e_flags (flags)
+        sizeof(ELF_Header),  								// e_ehsize	(size of header)
+        sizeof(Program_Header),								// e_phentsize (size of one program header)
+        1,              									// e_phnum (number of program headers)
+        sizeof(Section_Header),             				// e_shentsize (size of one section header)
+        2,													// e_shnum	(number of section headers)
+        0               									// e_shstrndx
 	};
 
 	Program_Header programHeader =
 	{
-        1,              							// p_type (loadable segment)
-        sizeof(ELF_Header),  						// p_offset
-        0x400000,       							// p_vaddr (virtual address)
-        0x400000,       							// p_paddr (physical address)
-        sizeof(machineCode[0])*machineCodeLength,  	// p_filesz (size in file)
-        sizeof(machineCode[0])*machineCodeLength,  	// p_memsz (size in memory)
-        7,              							// p_flags (read, write, execute)
-        0x1000          							// p_align
+        1,              									// p_type (loadable segment)
+        sizeof(ELF_Header),  								// p_offset
+        0x400000,       									// p_vaddr (virtual address)
+        0x400000,       									// p_paddr (physical address)
+        sizeof(ELF_Header) + sizeof(Program_Header),		// p_filesz (size in file)
+        sizeof(ELF_Header) + sizeof(Program_Header),		// p_memsz (size in memory)
+        7,              									// p_flags (read, write, execute)
+        0x1000          									// p_align
+    };
+
+	Section_Header strtabSectionHeader = 
+	{
+        1,  // sh_name (index into section header string table)
+        3,  // sh_type (strtab)
+        6,  // sh_flags (SHF_ALLOC | SHF_EXECINSTR)
+        0x400080,  // sh_addr (virtual address)
+        sizeof(ELF_Header) + sizeof(Program_Header),  // sh_offset (file offset)
+        sizeof(ELF_Header) + sizeof(Program_Header),  // sh_size
+        0,  // sh_link
+        0,  // sh_info
+        1,  // sh_addralign
+        0   // sh_entsize
+    };
+
+	Section_Header textSectionHeader = 
+	{
+        1,  // sh_name (index into section header string table)
+        1,  // sh_type (SHT_PROGBITS)
+        6,  // sh_flags (SHF_ALLOC | SHF_EXECINSTR)
+        0x400080,  // sh_addr (virtual address)
+        sizeof(ELF_Header) + sizeof(Program_Header),  // sh_offset (file offset)
+        sizeof(ELF_Header) + sizeof(Program_Header),  // sh_size
+        0,  // sh_link
+        0,  // sh_info
+        1,  // sh_addralign
+        0   // sh_entsize
+    };
+
+	 Section_Header dataSectionHeader = 
+	 {
+        7,  // sh_name (index into section header string table)
+        1,  // sh_type (SHT_PROGBITS)
+        3,  // sh_flags (SHF_WRITE | SHF_ALLOC)
+        0x400090,  // sh_addr (virtual address)
+        sizeof(ELF_Header) + sizeof(Program_Header) + sizeof(Section_Header),  // sh_offset (file offset)
+        /* Adjust this based on your actual data size */
+        0,  // sh_size
+        0,  // sh_link
+        0,  // sh_info
+        1,  // sh_addralign
+        0   // sh_entsize
     };
 
 	FILE* file = fopen(name, "wb");
