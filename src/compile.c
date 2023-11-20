@@ -7,7 +7,6 @@
 
 #include "compile.h"
 
-
 int machine_code_length(uint16_t codeLength, char* code)
 {
 	int length = 11;
@@ -111,7 +110,7 @@ unsigned char* compile_ELF(char* code, short int length, int* rp_endlength)
 
 	unsigned char beginning[] =
 	{
-		0x66, 0x31, 0xf6,
+		0x31, 0xf6,
 		0x31, 0xc0,
 		0x31, 0xdb,
 		0x31, 0xc9,
@@ -120,17 +119,23 @@ unsigned char* compile_ELF(char* code, short int length, int* rp_endlength)
 	printf("0x%x, %d\n", length, length);
 	printf("0x%lx, %ld\n", sizeof(beginning), sizeof(beginning));
 
-	unsigned char arr_low 		= (unsigned char)((length+9+sizeof(ELF_Header)+2*sizeof(Program_Header)) & 0xFF);
-	unsigned char arr_high		= (unsigned char)(((length+9+sizeof(ELF_Header)+2*sizeof(Program_Header)) >> 8) & 0xFF);
+	*rp_endlength = 10;
+	uint32_t magicNumber = 0x0804a000;
+	uint32_t array = magicNumber;
+	unsigned char arr_low 		= (unsigned char)(array & 0xFF);
+	unsigned char arr_lowmid	= (unsigned char)((array >> 8) & 0xFF);
+	unsigned char arr_highmid	= (unsigned char)((array >> 16) & 0xFF);
+	unsigned char arr_high		= (unsigned char)((array >> 24) & 0xFF);
 
 	unsigned char exit[] =
 	{
 		0xb0, 0x01,
-		0x67, 0x8a, 0x9c, arr_low, arr_high,
+		0x8a, 0x9e, arr_low, arr_lowmid, arr_highmid, arr_high,
 		0xcd, 0x80
 	};
 
 	*rp_endlength = sizeof(exit);
+	printf("0x%x, %d\n", *rp_endlength, *rp_endlength);
 	unsigned char* machineCode  = (unsigned char*)malloc(length + *rp_endlength);
 	unsigned char* currentPos = machineCode;
 
@@ -146,23 +151,23 @@ unsigned char* compile_ELF(char* code, short int length, int* rp_endlength)
 
 	unsigned char plus[] =
 	{
-		0x67, 0x8a, 0x84, arr_low, arr_high,
+		0x8a, 0x86, arr_low, arr_lowmid, arr_highmid, arr_high,
 		0xfe, 0xc0,
-		0x67, 0x88, 0x84, arr_low, arr_high
+		0x88, 0x86, arr_low, arr_lowmid, arr_highmid, arr_high,
 	};
 
 	unsigned char minus[] =
 	{
-		0x67, 0x8a, 0x84, arr_low, arr_high,
+		0x8a, 0x86, arr_low, arr_lowmid, arr_highmid, arr_high,
 		0xfe, 0xc8,
-		0x67, 0x88, 0x84, arr_low, arr_high
+		0x88, 0x86, arr_low, arr_lowmid, arr_highmid, arr_high,
 	};
 
 	unsigned char out[] =
 	{
 		0xb0, 0x04,
 		0xb3, 0x01,
-		0x67, 0x8a, 0x8c, arr_low, arr_high,
+		0x8a, 0x8e, arr_low, arr_lowmid, arr_highmid, arr_high,
 		0xcd, 0x80
 	};
 
@@ -170,7 +175,7 @@ unsigned char* compile_ELF(char* code, short int length, int* rp_endlength)
 	{
 		0xb0, 0x03,
 		0xb3, 0x00,
-		0x67, 0x8a, 0x8c, arr_low, arr_high,
+		0x8a, 0x8e, arr_low, arr_lowmid, arr_highmid, arr_high,
 		0xb2, 0x01,
 		0xcd, 0x80
 	};
@@ -246,14 +251,14 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int
         2,              									// e_type (executable)
         3,              									// e_machine (x86) 
         1,              									// e_version
-        0x08048054,      									// e_entry (entry point address)
+        0x08048000,      									// e_entry (entry point address)
         sizeof(ELF_Header),  								// e_phoff (program header)
         0,     											    // e_shoff (section header)
         0,              									// e_flags (flags)
         sizeof(ELF_Header),  								// e_ehsize	(size of header)
         sizeof(Program_Header),								// e_phentsize (size of one program header)
-        1,              									// e_phnum (number of program headers)
-        28,				 		            				// e_shentsize (size of one section header)
+        2,              									// e_phnum (number of program headers)
+        0,				 		            				// e_shentsize (size of one section header)
         0,													// e_shnum	(number of section headers)
         0               									// e_shstrndx
 	};
@@ -261,26 +266,26 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int
 	Program_Header programHeader =
 	{
         1,              									// p_type (loadable segment)
-        sizeof(ELF_Header) + sizeof(Program_Header),  		// p_offset
-        0x08048054,       									// p_vaddr (virtual address)
-        0,       											// p_paddr (unused)
+        sizeof(ELF_Header) + 2 * sizeof(Program_Header),  	// p_offset
+        0x08048000,       									// p_vaddr (virtual address)
+        0x08048000,       									// p_paddr (unused)
         machineCodeLength + endlength,						// p_filesz (size in file)
         machineCodeLength + endlength,						// p_memsz (size in memory)
         5,              									// p_flags (1=X 2=W 4=R)
-        0          											// p_align
+        0x1000          									// p_align
     };
 
 	Program_Header dataHeader =
 	{
         1,              									// p_type (loadable segment)
-        sizeof(ELF_Header) + sizeof(Program_Header)			// p_offset
+        sizeof(ELF_Header) + 2 * sizeof(Program_Header)		// p_offset
 		+ machineCodeLength + endlength,  					// 
-        0x08048054,       									// p_vaddr (virtual address)
+        0x0804a000,       									// p_vaddr (virtual address)
         0,       											// p_paddr (unused)
-        0,													// p_filesz (size in file)
-        0x10000,											// p_memsz (size in memory)
+        0x5,												// p_filesz (size in file)
+        0x5,												// p_memsz (size in memory)
         6,              									// p_flags (1=X 2=W 4=R)
-        0		          									// p_align						// I have tried 0x1000 but i think it was causing problems so i aint know
+        0x1000		          								// p_align						// I have tried 0x1000 but i think it was causing problems so i aint know
     };
 
 	FILE* file = fopen(name, "wb");
@@ -289,13 +294,21 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int
         perror("Error opening file ");
         return 1;
     }
+	
+	char* dataSector = (char*)malloc(5);
+	for (int i = 0; i < 5; i++)
+	{
+		dataSector[i] = 3;
+	}
 
+	//unsigned char testCode[] = { 0xB8, 0x01, 0x00, 0x00, 0x00, 0xBB, 0x00, 0x00, 0x00, 0x00, 0xCD, 0x80 };
     fwrite(&elfHeader, sizeof(ELF_Header), 1, file);
     fwrite(&programHeader, sizeof(Program_Header), 1, file);
 	fwrite(&dataHeader, sizeof(Program_Header), 1, file);
 	
+	//fwrite(testCode, sizeof(testCode), 1, file);
     fwrite(machineCode, sizeof(unsigned char), machineCodeLength + endlength, file);
-
+	fwrite(dataSector, 1, 5, file);
     fclose(file);
 
 

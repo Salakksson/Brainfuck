@@ -33,17 +33,17 @@ decptr:					;	0x66, 0x4e
 plus:					;	0x67, 0x8a, 0x84, low, high,
 						;	0xfe, 0xc0,
 						;	0x67, 0x88, 0x84, low, high
-	mov al, [si + o]
+	mov al, [esi + o]
 	inc al
-	mov [si + o], al
+	mov [esi + o], al
 	ret
 
 minus:					;	0x67, 0x8a, 0x84, low, high,
 						;	0xfe, 0xc8
 						;	0x67, 0x88, 0x84, low, high
-	mov al,	[si + o]
+	mov al,	[esi + o]
 	dec al
-	mov [si + o], al
+	mov [esi + o], al
 	ret
 
 out:					;	0xb0, 0x04,
@@ -53,7 +53,7 @@ out:					;	0xb0, 0x04,
 						;
 	mov al, 4			; write syscall
 	mov bl, 1 			; stdout
-	mov cl, [si + o]	; character to print
+	mov cl, [esi + o]	; character to print
 
 	int 0x80
 	ret
@@ -66,7 +66,7 @@ in:						;	0xb0, 0x03,
 						;
 	mov al, 3 			; read syscall
 	mov bl, 0 			; stdin
-	mov cl, [si + o]	; write to [esi]
+	mov cl, [esi + o]	; write to [esi]
 	mov dl, 1 			; bytes to read
 
 	int 0x80
@@ -76,7 +76,7 @@ open:
 	token:
 
 close:
-	cmp [si], 0			;	0x66, 0x3b, 0x06, 0x00, 0x00,
+	cmp [si+o], 0			;	0x66, 0x3b, 0x06, 0x00, 0x00,
 	je token			;	0x74, token low, token high
 
 
