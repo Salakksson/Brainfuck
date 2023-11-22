@@ -119,7 +119,7 @@ unsigned char* compile_ELF(char* code, short int length, int* rp_endlength)
 
 	*rp_endlength = 10;
 	uint32_t magicNumber = 0x0804a000;
-	uint32_t array = magicNumber;
+	uint32_t array = magicNumber + sizeof(ELF_Header) + 2 * sizeof(Program_Header) + length + *rp_endlength;
 	unsigned char arr_low 		= (unsigned char)(array & 0xFF);
 	unsigned char arr_lowmid	= (unsigned char)((array >> 8) & 0xFF);
 	unsigned char arr_highmid	= (unsigned char)((array >> 16) & 0xFF);
@@ -248,14 +248,14 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength)
         2,              									// e_type (executable)
         3,              									// e_machine (x86) 
         1,              									// e_version
-        0x08048000,      									// e_entry (entry point address)
+        0x08048000 + sizeof(ELF_Header) + 2 * sizeof(Program_Header), // e_entry (entry point address)
         sizeof(ELF_Header),  								// e_phoff (program header)
         0,     											    // e_shoff (section header)
         0,              									// e_flags (flags)
         sizeof(ELF_Header),  								// e_ehsize	(size of header)
         sizeof(Program_Header),								// e_phentsize (size of one program header)
         2,              									// e_phnum (number of program headers)
-        0,				 		            				// e_shentsize (size of one section header)
+        0x28,				 		            			// e_shentsize (size of one section header)
         0,													// e_shnum	(number of section headers)
         0               									// e_shstrndx
 	};
@@ -263,11 +263,11 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength)
 	Program_Header programHeader =
 	{
         1,              									// p_type (loadable segment)
-        sizeof(ELF_Header) + 2 * sizeof(Program_Header),  	// p_offset
+        0,  												// p_offset
         0x08048000,       									// p_vaddr (virtual address)
         0x08048000,       									// p_paddr (unused)
-        machineCodeLength,									// p_filesz (size in file)
-        machineCodeLength,									// p_memsz (size in memory)
+        sizeof(ELF_Header) + 2 * sizeof(Program_Header) + machineCodeLength, // p_filesz (size in file)
+        sizeof(ELF_Header) + 2 * sizeof(Program_Header) + machineCodeLength, // p_memsz (size in memory)
         5,              									// p_flags (1=X 2=W 4=R)
         0x1000          									// p_align
     };
@@ -275,11 +275,12 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength)
 	Program_Header dataHeader =
 	{
         1,              									// p_type (loadable segment)
-        sizeof(ELF_Header) + 2 * sizeof(Program_Header)		// p_offset
-		+ machineCodeLength,  								// 
-        0x0804a000,       									// p_vaddr (virtual address)
-        0x0804a000,       									// p_paddr (unused)
-        0x10000,											// p_filesz (size in file)
+        sizeof(ELF_Header) + 2 * sizeof(Program_Header) + machineCodeLength, // p_offset
+        0x0804a000 + sizeof(ELF_Header)						// p_vaddr (virtual address)
+		+ 2 * sizeof(Program_Header)						//
+		+ machineCodeLength,       							//		
+        0,													// p_paddr (unused)
+        0x0,												// p_filesz (size in file)
         0x10000,											// p_memsz (size in memory)
         6,              									// p_flags (1=X 2=W 4=R)
         0x1000		          								// p_align
@@ -305,7 +306,7 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength)
 	
 	//fwrite(testCode, sizeof(testCode), 1, file);
     fwrite(machineCode, sizeof(unsigned char), machineCodeLength, file);
-	fwrite(dataSector, sizeof(unsigned char), 0x10000, file);
+	//fwrite(dataSector, sizeof(unsigned char), 0x10000, file);
     fclose(file);
 
 
