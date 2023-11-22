@@ -116,8 +116,6 @@ unsigned char* compile_ELF(char* code, short int length, int* rp_endlength)
 		0x31, 0xc9,
 		0x31, 0xd2
 	};
-	printf("0x%x, %d\n", length, length);
-	printf("0x%lx, %ld\n", sizeof(beginning), sizeof(beginning));
 
 	*rp_endlength = 10;
 	uint32_t magicNumber = 0x0804a000;
@@ -135,7 +133,6 @@ unsigned char* compile_ELF(char* code, short int length, int* rp_endlength)
 	};
 
 	*rp_endlength = sizeof(exit);
-	printf("0x%x, %d\n", *rp_endlength, *rp_endlength);
 	unsigned char* machineCode  = (unsigned char*)malloc(length + *rp_endlength);
 	unsigned char* currentPos = machineCode;
 
@@ -243,7 +240,7 @@ unsigned char* compile_ELF(char* code, short int length, int* rp_endlength)
 	return machineCode;
 }
 
-int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int endlength)
+int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength)
 {
 	ELF_Header elfHeader =
 	{
@@ -269,8 +266,8 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int
         sizeof(ELF_Header) + 2 * sizeof(Program_Header),  	// p_offset
         0x08048000,       									// p_vaddr (virtual address)
         0x08048000,       									// p_paddr (unused)
-        machineCodeLength + endlength,						// p_filesz (size in file)
-        machineCodeLength + endlength,						// p_memsz (size in memory)
+        machineCodeLength,									// p_filesz (size in file)
+        machineCodeLength,									// p_memsz (size in memory)
         5,              									// p_flags (1=X 2=W 4=R)
         0x1000          									// p_align
     };
@@ -279,13 +276,13 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int
 	{
         1,              									// p_type (loadable segment)
         sizeof(ELF_Header) + 2 * sizeof(Program_Header)		// p_offset
-		+ machineCodeLength + endlength,  					// 
+		+ machineCodeLength,  								// 
         0x0804a000,       									// p_vaddr (virtual address)
-        0,       											// p_paddr (unused)
-        0x5,												// p_filesz (size in file)
-        0x5,												// p_memsz (size in memory)
+        0x0804a000,       									// p_paddr (unused)
+        0x10000,											// p_filesz (size in file)
+        0x10000,											// p_memsz (size in memory)
         6,              									// p_flags (1=X 2=W 4=R)
-        0x1000		          								// p_align						// I have tried 0x1000 but i think it was causing problems so i aint know
+        0x1000		          								// p_align
     };
 
 	FILE* file = fopen(name, "wb");
@@ -295,10 +292,10 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int
         return 1;
     }
 	
-	char* dataSector = (char*)malloc(5);
-	for (int i = 0; i < 5; i++)
+	char* dataSector = (char*)malloc(0x10000);
+	for (int i = 0; i < 0x10000; i++)
 	{
-		dataSector[i] = 3;
+		dataSector[i] = 0;
 	}
 
 	//unsigned char testCode[] = { 0xB8, 0x01, 0x00, 0x00, 0x00, 0xBB, 0x00, 0x00, 0x00, 0x00, 0xCD, 0x80 };
@@ -307,8 +304,8 @@ int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int
 	fwrite(&dataHeader, sizeof(Program_Header), 1, file);
 	
 	//fwrite(testCode, sizeof(testCode), 1, file);
-    fwrite(machineCode, sizeof(unsigned char), machineCodeLength + endlength, file);
-	fwrite(dataSector, 1, 5, file);
+    fwrite(machineCode, sizeof(unsigned char), machineCodeLength, file);
+	fwrite(dataSector, sizeof(unsigned char), 0x10000, file);
     fclose(file);
 
 

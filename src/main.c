@@ -45,7 +45,7 @@ int main(int argc,char **argv)
 	unsigned char* machineCode = compile_ELF(file, machine_code_length(codeLength, file), &buffer);
 
 	printf("Brainfuck: Writing to '%s' as ELF\n", argv[2]);
-	if(ELF_Write(machineCode, argv[2], machine_code_length(codeLength, file), buffer))
+	if(ELF_Write(machineCode, argv[2], machine_code_length(codeLength, file) + buffer))
 	{
 		printf("failiure\n");
 		return -3;

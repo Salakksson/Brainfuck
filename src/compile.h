@@ -51,7 +51,7 @@ int parse(char* code, uint16_t** rp_startBrackets);
 
 unsigned char* compile_ELF(char* code, short int length, int* rp_endlength);
 
-int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength, int endlength);
+int ELF_Write(unsigned char* machineCode, char* name, int machineCodeLength);
 
 
 
